@@ -123,14 +123,34 @@ namespace diffdrive
         return command_interfaces;
     }
 
-   hardware_interface::CallbackReturn DiffBotSystemHardware::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
+   hardware_interface::CallbackReturn DiffBotSystemHardware::on_configure(const rclcpp_lifecycle::State& /*previous_state*/)
     {
-       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Activating ...please wait...");
+       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Configure ...please wait...");
         if (comms_.connected())
         {
             comms_.disconnect();
         }
         comms_.connect(cfg_.device, cfg_.baud_rate, cfg_.timeout_ms);
+       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Successfully configured!");
+
+       return hardware_interface::CallbackReturn::SUCCESS;
+    } 
+
+    hardware_interface::CallbackReturn DiffBotSystemHardware::on_cleanup(const rclcpp_lifecycle::State& /*previous_state*/)
+    {
+       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Cleanup ...please wait...");
+       comms_.disconnect();
+       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Successfully cleanuped!");
+       return hardware_interface::CallbackReturn::SUCCESS;
+    } 
+    
+    hardware_interface::CallbackReturn DiffBotSystemHardware::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
+    {
+       RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Activating ...please wait...");
+         if (!comms_.connected())
+         {
+           return hardware_interface::CallbackReturn::ERROR;
+         }
        RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Successfully activated!");
 
        return hardware_interface::CallbackReturn::SUCCESS;
@@ -139,8 +159,8 @@ namespace diffdrive
     hardware_interface::CallbackReturn DiffBotSystemHardware::on_deactivate(const rclcpp_lifecycle::State& /*previous_state*/)
     {
        RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Deactivating ...please wait...");
-       comms_.disconnect();
        RCLCPP_INFO(rclcpp::get_logger("DiffBotSystemHardware"), "Successfully deactivated!");
+       
        return hardware_interface::CallbackReturn::SUCCESS;
     } 
     
@@ -171,8 +191,8 @@ namespace diffdrive
              return hardware_interface::return_type::ERROR;
          }
         // BEGIN: This part here is for exemplary purposes - Please do not copy to your production code
-        int motor_l_rpm = wheel_l_.cmd*3.5;
-        int motor_r_rpm = wheel_r_.cmd*3.5;
+        int motor_l_rpm = wheel_l_.cmd*(30/M_PI);
+        int motor_r_rpm = wheel_r_.cmd*(30/M_PI);
         comms_.set_motor_values(motor_r_rpm, motor_l_rpm);
         return hardware_interface::return_type::OK;
     }

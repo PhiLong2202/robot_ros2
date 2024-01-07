@@ -5,9 +5,10 @@
 #include <sstream>
  //#include <cstdlib>
 //#include <libserial/SerialPort.h>
-#include <libserial/SerialStream.h>
+#include <libserial/SerialPort.h>
 #include <iostream>
-
+#include <string>
+#include <math.h> 
 
 LibSerial::BaudRate convert_baud_rate(int baud_rate)
 {
@@ -42,43 +43,47 @@ public:
 
     bool connected() const
     {
-        return serial_conn_.good();
+        return serial_conn_.IsOpen();
     }
 
 
-    void read_enc_values(double& wheel_l, double& wheel_r)
+    void read_enc_values(int& wheel_l, int& wheel_r)
     {
-        char rxbuffer[4];
+        std::string response = "";
         // Responses end with \r\n so we will read up to (and including) the \n.
-        serial_conn_.read(rxbuffer, 4);
-        if(static_cast<int>(rxbuffer[0]) == 0)
+        try
         {
-            wheel_l += 3*static_cast<int>(rxbuffer[1]);
-        }else
-        {
-            wheel_l += -3*static_cast<int>(rxbuffer[1]);
+          // Responses end with \r\n so we will read up to (and including) the \n.
+          serial_conn_.ReadLine(response, '\n', 1000);
         }
-        if(static_cast<int>(rxbuffer[2]) == 0)
+        catch (const LibSerial::ReadTimeout&)
         {
-            wheel_r += 3*static_cast<int>(rxbuffer[3]);
-        }else
-        {
-            wheel_r += -3*static_cast<int>(rxbuffer[3]);
+           std::cerr << "The ReadByte() call has timed out." << std::endl ;
         }
+        std::string split = ",";
+        size_t sub = response.find(",");
+        std::string token_1 = response.substr(0, sub);
+        std::string token_2 = response.substr(sub + split.length());
+        wheel_l += std::stoi(token_1.c_str());
+        wheel_r += std::stoi(token_2.c_str());
         
     }
     void set_motor_values(int wheel_r_rpm, int wheel_l_rpm)
     {
-        char txbuffer[2];
-        
-        txbuffer[0] = wheel_l_rpm;
+        char txbuffer[4];
+        txbuffer[0] = 0x02;
         txbuffer[1] = wheel_r_rpm;
+        txbuffer[2] = wheel_l_rpm;
+        txbuffer[3] = 0x03;
         serial_conn_.FlushIOBuffers(); // Just in case
-        serial_conn_.write(txbuffer,2);
+        for( int i=0; i<4; i++ )
+        {
+            serial_conn_.WriteByte(txbuffer[i]);
+        }
     }
 
 private:
-    LibSerial::SerialStream serial_conn_;
+    LibSerial::SerialPort serial_conn_;
     int timeout_ms_;
 };
 

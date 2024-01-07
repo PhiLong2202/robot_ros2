@@ -13,7 +13,7 @@ public:
     double cmd = 0;
     double pos = 0;
     double vel = 0; // rad/s
-    double enc = 0;
+    int enc = 0;
 
     Wheel() = default;
 
